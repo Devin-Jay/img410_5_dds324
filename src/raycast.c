@@ -343,7 +343,7 @@ PPMImage *raycast(Scene *scene, int width, int height)
             rayDir.z = -1.0f;
 
             // shoot ray from camera position towards pixel and get color of closest intersecting object
-            pixColor = shoot(scene, camPos, v3_normalize(rayDir));
+            pixColor = shoot(scene, camPos, v3_normalize(rayDir), 0);
 
             // set pix color to color of closest intersecting object
             float r = fminf(1.0f, fmaxf(0.0f, pixColor.x));
@@ -361,7 +361,7 @@ PPMImage *raycast(Scene *scene, int width, int height)
 
 // function that shoots ray from camera position towards pixel and returns color of closest intersecting object
 // lightning and shadows applied
-Vector3 shoot(Scene *scene, Vector3 rayOrigin, Vector3 rayDir)
+Vector3 shoot(Scene *scene, Vector3 rayOrigin, Vector3 rayDir, int depth)
 {
     // initialize closest object and distance
     int closestObjIndex = -1;
@@ -522,6 +522,27 @@ Vector3 shoot(Scene *scene, Vector3 rayOrigin, Vector3 rayDir)
         finalColor.x += frad * (diffuse.x + specular.x);
         finalColor.y += frad * (diffuse.y + specular.y);
         finalColor.z += frad * (diffuse.z + specular.z);
+    }
+
+    // Reflection
+    // Only recurse if the object has a non-zero reflection value and we haven't hit the depth limit
+    if (obj.reflection > 0.0f && depth < MAX_REFLECT_DEPTH)
+    {
+        // Compute the reflected ray direction: r = d - 2(d·n)n
+        float dotDN = v3_dot_product(rayDir, normal);
+        Vector3 reflectedDir = v3_subtract(rayDir, v3_scale(normal, 2.0f * dotDN));
+        reflectedDir = v3_normalize(reflectedDir);
+
+        // Offset the origin slightly along the normal to avoid self-intersection
+        Vector3 reflectOrigin = v3_add(intersectionPoint, v3_scale(normal, 0.0001f));
+
+        // Recursively shoot the reflected ray
+        Vector3 reflectColor = shoot(scene, reflectOrigin, reflectedDir, depth + 1);
+
+        // Blend: local color scaled by (1 - reflection) + reflected color scaled by reflection
+        finalColor.x = (1.0f - obj.reflection) * finalColor.x + obj.reflection * reflectColor.x;
+        finalColor.y = (1.0f - obj.reflection) * finalColor.y + obj.reflection * reflectColor.y;
+        finalColor.z = (1.0f - obj.reflection) * finalColor.z + obj.reflection * reflectColor.z;
     }
 
     return finalColor;
