@@ -1,4 +1,4 @@
-# img410_3_dds324
+# img410_5_dds324
 
 # Authors
 Devin Jay San Nicolas
@@ -16,6 +16,8 @@ raycast.c contains functions to read input scene and raycast.
 raycast.c also utilizes past projects to do vector3 math.
 
 raycast.c now implements lighting and shadows when calculating a pixel's color.
+
+raycast.c also adds reflection functions through recursion of the shoot function
 
 structures.h contains various datatypes created.
 
